@@ -1,0 +1,37 @@
+                	<div class="list-group-item">
+                		<input type="radio" id="users-usercb-{{this.username}}" name="users-usercb" value="{{this.username}}" />
+                    	<label for="users-usercb-{{this.username}}">
+                        	<h4>{{this.fullname}} ({{this.username}})</h4>
+                            <div class="users-perm-add" data-user="{{this.username}}"><i class="fa fa-plus"></i></div>
+        				</label>
+                        <div class="list-group users-menu-users-perms">
+            				{{#each this.perms}}
+                				<div class="list-group-item {{#if this.writable}}writable{{/if}} {{#unless this.enabled}}disabled{{/unless}}">
+                					<input type="radio" id="users-usercb-{{../username}}-perm-{{@index}}" name="users-usercb-perm" value="{{../username}}-{{this.perm}}" />
+                    				<label for="users-usercb-{{../username}}-perm-{{@index}}" 
+                                    {{#unless this.enabled}}style="text-decoration: line-through;"{{/unless}}>
+                                    	<h5>{{this.perm}}</h5>
+                                        <div class="users-perm-remove" data-user="{{../username}}" data-perm="{{this.perm}}"><i class="fa fa-trash"></i></div>
+        							</label>
+                                    
+                                    <div class="list-group">
+                                    	<div class="list-group-item"><label>
+                                        	<h6>Enabled: </h6>
+                                            <i class="fa fa-square-o perm-enable-toggle disabled" data-user="{{../username}}" data-perm="{{this.perm}}"></i>
+                                            <i class="fa fa-check-square-o perm-enable-toggle enabled" data-user="{{../username}}" data-perm="{{this.perm}}"></i>
+        								</label></div>
+                                        <div class="list-group-item"><label>
+                                        	<h6>Added On: {{this.added}}</h6>
+        								</label></div>
+                                        <div class="list-group-item"><label>
+                                        	<h6>Added By: {{#if this.addedBy}}{{this.addedBy}}{{else}}Mr.Robot{{/if}}</h6>
+        								</label></div>
+                                    </div>
+                    			</div>
+                            {{else}}
+                            	<div class="list-group-item warning">
+                    				<label><h5>User has no permissions.</h5></label>
+                                </div>
+                			{{/each}}
+            			</div>
+                    </div>

@@ -1,0 +1,19 @@
+			<div class="col-xs-10 col-xs-offset-1" style="padding-top:12px;">
+                {{#if this.keyslen}}
+        			<div class="panel panel-default {{this.class}}">
+        				<ul class="panel-body list-group" style="padding:0px;">
+                        	{{#each this.keys}}
+                            	<li class="list-group-item" index="{{this.keynum}}">
+                                	Card Number {{this.keynum}} - Added on: {{this.added}}
+                            		<i class="fa fa-trash"></i>
+                                </li>
+                            {{/each}}
+        				</ul>
+        			</div>
+                {{else}}
+                    <div class="alert alert-warning">You currently have no keycards, you must come into the lab to add one.</div>
+                {{/if}}
+        	</div>
+            <div class="col-xs-10 col-xs-offset-1 add-key" style="display: none;">
+            	<button class="col-xs-12 btn btn-success">+ Add Card</button>
+            </div>

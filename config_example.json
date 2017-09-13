@@ -1,0 +1,48 @@
+{
+	"sessionSecret" : "somethingverylongandsecret",
+	"googleQuizResults": "docs.google.com",
+	"http"			: {
+    					"enabled"	: true,
+    					"port"		: 3011
+    				},
+	"https"			: {
+    					"enabled"	: false,
+    					"cert"		: "./certs/server.cert",
+    					"key"		: "./certs/server.key",
+    					"port"		: 443
+    				},
+	"mongo"			: {
+    					"host"	: "localhost",
+    					"port"	: 27017,
+    					"name"	: "makers-access"
+    				},
+	"keyMax"		: 2,
+	"editableperms" : [
+    					"training.trainer.lab",
+						"users.write",
+    					"users.read",
+    					"testing.test",
+    					"joining.joined"
+					],
+    "smtp"			: {
+        				"host"	: "example.com",
+        				"port"	: 465,
+        				"secure": true,
+        				"auth"	: {
+            						"user": "robot@example.com",
+            						"pass": "superStrongPassword"
+        				}
+    				},
+	"mailchimp"		: {
+    					"apikey": "mailchimpapi-key",
+    					"listIDs": {
+                        	"makers": "1234abcdef",
+                        	"newsletter": "1234abcdef"
+                        },
+    					"webhook": "/api/mailchimp",
+    					"subPerms": {
+                        	"makers": "joining.joined",
+                        	"newsletter": "joining.newsletter"
+                        }
+    				}
+}

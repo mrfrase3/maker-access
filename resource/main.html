@@ -1,0 +1,138 @@
+<html>
+	<head>
+    	<link rel="stylesheet" href="/common/css/theme.css">
+    	<link rel="stylesheet" href="/common/css/main.css">
+    	<link rel="stylesheet" href="https://cdn.jsdelivr.net/sweetalert2/6.4.2/sweetalert2.min.css">
+    	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
+	</head>
+	<body>
+    
+    <div class="titlebar">
+    	<div class="dragbar">Makers Portal Desktop</div>
+    	<div class="tb-btn window-close"><i class="fa fa-close"></i></div>
+    	<div class="tb-btn window-refresh"><i class="fa fa-refresh"></i></div>
+    	<div class="tb-btn window-min"><i class="fa fa-window-minimize"></i></div>
+    </div>
+    
+    <nav class="navbar navbar-default" style="display:none;">
+		<div class="container-fluid">
+    		<div class="navbar-header">
+    			<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar-collapse">
+        			<span class="sr-only">Toggle navigation</span>
+        			<span class="icon-bar"></span>
+        			<span class="icon-bar"></span>
+        			<span class="icon-bar"></span>
+      			</button>
+      			<a class="navbar-brand navbar-back" href="#" style="border-right: lightgrey solid 1px;margin-right:15px"><i class="fa fa-arrow-left"></i></a>
+            	<img class="navbar-brand" src="/common/img/logo.png" alt="Makers" style="padding:4px;">
+      			<a class="navbar-brand" href="#" style="border-right: lightgrey solid 1px;">Portal</a>
+    		</div>
+	
+    		<div class="collapse navbar-collapse" id="navbar-collapse">
+            	<script type="text/template" class="main-navbar-template">
+            		{{#each this}}
+                    	<li class="{{this.class}}"><a href="#"><i class="fa {{this.icon}}"></i> {{this.title}}</a></li>
+                    {{/each}}
+            	</script>
+      			<ul class="nav navbar-nav navbar-main">
+      			</ul>
+      			<ul class="nav navbar-nav navbar-right">
+      				<li class="navbar-fullname" style="border-left: lightgrey solid 1px;"><a></a></li>
+     			</ul>
+    		</div>
+  		</div>
+	</nav>
+
+    <div class="row login valign" style="display:none;">
+    	<div class="col-xs-10 col-xs-offset-1 col-md-4 col-md-offset-4">
+	    	<div class="panel panel-default">
+	  			<div class="panel-body">
+                	<img src="/common/img/logo.png" alt="UWA Makers" class="halign">
+	    	    	<form class="form-horizontal">
+						<fieldset>
+							<legend>Login</legend>
+                        	<div class="login-error"></div>
+							<div class="form-group">
+								<label for="user" class="col-lg-2 control-label">Pheme Number</label>
+								<div class="col-lg-10">
+									<input type="text" class="form-control" id="user" placeholder="12345678" autocomplete="off" name="user">
+								</div>
+							</div>
+							<div class="form-group">
+								<label for="pass" class="col-lg-2 control-label">Password</label>
+								<div class="col-lg-10">
+									<input type="password" class="form-control" id="pass" placeholder="Password" autocomplete="off" name="pass">
+								</div>
+							</div>
+							<div class="form-group">
+								<div class="col-lg-10 col-lg-offset-2">
+									<button type="submit" class="btn btn-primary">Login</button>
+								</div>
+							</div>
+						</fieldset>
+                    	<fieldset style="display:none;" class="uid-wrap">
+                        	<legend>Or Scan Your Card</legend>
+                        	<div class="halign uid-box"><i class="fa fa-wifi" style="transform: rotate(90deg);"></i></div>
+                    		<input type="hidden" id="uid" name="uid">
+                    	</fieldset>
+					</form>
+		  		</div>
+			</div>
+	    </div>
+    </div>
+
+    <div class="row main-menu">
+    	<script type="text/template" class="main-menu-template">
+        	{{#each this}}
+    			<div class="col-sm-6" style="padding-top:12px;">
+        			<div class="panel panel-default {{this.class}}">
+        				<div class="panel-body" style="min-height:14em;">
+        					<div class="main-select-wrap">
+                            	<i class="fa {{this.icon}}" style="font-size:5em;"></i>
+                                <h3>{{this.title}}</h3>
+                            </div>
+        				</div>
+        			</div>
+        		</div>
+            {{/each}}
+    	</script>
+    	<div class="col-md-4 col-md-offset-4"></div>
+    </div>
+    
+    <div class="row keys-menu">
+    	<div class="col-md-4 col-md-offset-4"></div>
+    </div>
+    
+    <div class="row training-menu">
+    	<div class="col-md-4 col-md-offset-4"></div>
+    </div>
+    
+    <div class="row users-menu" style="display:none;">
+    	<div class="col-md-4 col-md-offset-4">
+    		<div class="form-group">
+  				<div class="input-group">
+    				<input type="text" class="form-control">
+    				<span class="input-group-btn">
+      					<button class="btn btn-default" type="button" style="height:36px;"><i class="fa fa-search"></i></button>
+    				</span>
+  				</div>
+			</div>
+            
+        	<div class="list-group users-menu-users">
+        	</div>
+        </div>
+    </div>
+    
+	</body>
+	<foot>
+    	<!-- Electron Compatibility-->
+		<script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>
+    	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    	<script src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.0.6/handlebars.min.js"></script>
+    	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+    	<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.7.3/socket.io.min.js"></script>
+    	<script src="https://cdn.jsdelivr.net/sweetalert2/6.4.2/sweetalert2.min.js"></script>
+    	<script src="/common/js/electron.js"></script>
+    	<script src="/common/js/main.js"></script>
+	</foot>
+</html>

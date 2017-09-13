@@ -1,0 +1,19 @@
+        	{{#each this}}
+    			<div class="col-sm-10 col-sm-offset-1" style="padding-top:12px;">
+        			<div class="panel {{this.label}} {{#if this.complete}}complete panel-success{{else}}panel-default{{/if}}" data-label="{{this.label}}">
+                    	<input id="training-{{this.label}}" type="checkbox" name="training-acord">
+                    	<label class="panel-heading" for="training-{{this.label}}">
+        					{{this.title}} {{#if this.complete}}<i class="fa fa-check"></i>{{/if}}
+        				</label>
+        				<ul class="panel-body list-group" style="padding:0px;">
+                        	{{#each this.assessments}}
+                            	{{#if this.link}}<a href="{{this.link}}" target="_blank"{{else}}<li{{/if}}
+        						class="list-group-item {{this.type}}  {{#if this.complete}}complete{{/if}}" index="{{this.assnum}}. ">
+                            		{{#if this.result}}<span class="badge">{{this.result}}</span>{{/if}}
+                                    {{this.title}} {{#if this.complete}}<i class="fa fa-check"></i>{{/if}}
+                                {{#if this.link}}</a>{{else}}</li>{{/if}}
+                            {{/each}}
+        				</ul>
+        			</div>
+        		</div>
+            {{/each}}

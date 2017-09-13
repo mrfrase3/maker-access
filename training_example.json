@@ -1,0 +1,65 @@
+[
+	{
+    	"title": "Lab Safety and Lab Keycard Access",
+		"perms": ["doors.lab"],
+    	"icon": "",
+        "label": "lab",
+    
+    	"assessments": [
+        	{
+            	"type": "comment-link",
+            	"link": "http://www.safety.uwa.edu.au/induction-and-training/online-health-and-safety-induction-for-students",
+            	"title": "Complete the UWA health and safety induction here."
+            },
+        	{
+            	"type": "comment-link",
+            	"link": "https://docs.google.com/document/d/1kwDz-RG_eoqx-SNOma2IQRKrvUQjR2YlPg5PgIpWDbM/edit?usp=sharing",
+            	"title": "Review this document on Lab Safety Procedures."
+            },
+        	{
+            	"type": "google-quiz",
+            	"reqmark": 0.8,
+            	"link": "https://docs.google.com/a/student.uwa.edu.au/forms/d/e/1FAIpQLSfX476C_LR-WG5CWvE-IFtkJV8ZJ--A62dM1OFlDK1pZVTPeA/viewform?usp=sf_link",
+            	"title": "Complete this Lab Safety Quiz.",
+            	"required": true
+            },
+        	{
+            	"type": "inperson-induction",
+            	"trainingPerm": "training.trainer.lab",
+            	"perm": "training.completed.lab",
+            	"title": "Come into the lab for an in-person induction.",
+            	"required": true
+            }
+        ],
+    	"accessmail": {
+        	"sendon": "weekly",
+        	"days": [0, 1, 2, 3, 4, 5, 6],
+        	"hour": 8,
+			"email": {
+            	"from": "\"Robot\"robot@example.com",
+				"to": "someone@example.com",
+            	"cc": [
+                	"person@example.com"
+                ],
+				"subject": "Door List.",
+            	"html": "Add these people please<br><br>{{#each users}}{{fullname}} - {{username}}<br>{{/each}}<br><br>Thanks"
+            }
+        }
+    },
+	{
+    	"title": "3D Printer Training",
+		"perms": ["equipment.3d.printers"],
+    	"icon": "",
+        "label": "3dp",
+    
+    	"assessments": [
+        	{
+            	"type": "inperson-induction",
+            	"trainingPerm": "training.trainer.3d.printers",
+            	"perm": "training.completed.3d.printers",
+            	"title": "Come into the lab for an in-person induction.",
+            	"required": true
+            }
+        ]
+    }
+]
