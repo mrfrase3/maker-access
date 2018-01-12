@@ -31,7 +31,7 @@
             	"required": true
             }
         ],
-    	"accessmail": {
+    	"accessmail": [{
         	"sendon": "weekly",
         	"days": [0, 1, 2, 3, 4, 5, 6],
         	"hour": 8,
@@ -44,7 +44,7 @@
 				"subject": "Door List.",
             	"html": "Add these people please<br><br>{{#each users}}{{fullname}} - {{username}}<br>{{/each}}<br><br>Thanks"
             }
-        }
+        }]
     },
 	{
     	"title": "3D Printer Training",
