@@ -118,7 +118,7 @@ app.use("/sockauth", function(req, res){
 });
 
 app.get("/api/user", function(req,res){
-	if(req.query.uid && typeof req.query.uid){
+	if(req.query.uid && typeof req.query.uid === 'string'){
     	tagAuth(req.query.uid, function(err, un){
 			if(err){
             	return res.json({success: false, message: err.message});
@@ -126,6 +126,23 @@ app.get("/api/user", function(req,res){
         	res.json({success: true, user: un});
 		});
     }
+});
+
+app.get("/api/perms/has", function(req,res){
+	let queriableperms = ["equipment.pcbmill", "equipment.lasercutter", "equipment.3dp", "equipment.dremel", "equipment.test"];
+	if(!req.query.perm || typeof req.query.perm !== 'string' || queriableperms.indexOf(req.query.perm) === -1){
+    	return res.json({success: false, message: "Invalid perameters given. perm required."});
+    }
+	if(req.query.uid && typeof req.query.uid === 'string'){
+    	tagAuth(req.query.uid, function(err, un){
+			if(err){
+            	return res.json({success: false, message: err.message});
+            }
+        	perms.has(un, req.query.perm, function(has){
+            	res.json({success: true, user: un, perm: req.query.perm, hasPerm: !!has});
+        	});
+		});
+    } else return res.json({success: false, message: "Invalid perameters given. uid required."});
 });
 
 app.use("/doorlist.csv", function(req, res){
@@ -314,7 +331,9 @@ io.on('connect', function(socket){
     	var joined = false;
     	var menu = [
         	{title: "Training", icon: "fa-graduation-cap", class: "training", templates: {"training-menu": templates["training"]} },
-        	{title: "Manage Key Cards", icon: "fa-id-card-o", class: "keys", templates: {"keys-menu": templates["keys"]} }
+        	{title: "Manage Key Cards", icon: "fa-id-card-o", class: "keys", templates: {"keys-menu": templates["keys"]} },
+        	{title: "Facebook Group", icon: "fa-facebook-official", class: "facebook", link: "https://www.facebook.com/groups/uwamakers/" },
+        	{title: "Slack Channel", icon: "fa-slack", class: "slack", link: "https://makeuwa.slack.com/" }
         ];
     	var count = 0;
     	var cb = function(){
@@ -407,14 +426,16 @@ io.on('connect', function(socket){
 
 	socket.on("training.induct", function(data){
     	if(!socket.user) return;
-    	if(!(data.uid && data.label && typeof data.uid == 'string' && typeof data.label == 'string' && data.uid.trim() != "" && data.label.trim() != "" )) return;
+    	if(!(data.uid && typeof data.uid == 'string' && data.uid.trim() != "") && 
+           !(data.user && typeof data.user == 'string' && data.user.trim() != "" && data.pass && typeof data.pass == 'string' && data.pass.trim() != "")) return;
+    	if(!(data.label && typeof data.label == 'string' && data.label.trim() != "")) return;
     	var training = require("./training.json");
     	for(var i in training){
         	if(training[i].label != data.label) continue;
         	for(var j in training[i].assessments){
             	if(training[i].assessments[j].type != "inperson-induction") continue;
             	var assessment = training[i].assessments[j];
-            	tagAuth(data.uid, function(err, un){
+            	var cb = function(err, un){
                 	if(err){
                     	if(!err.unregistered) console.error(err);
                     	return socket.emit("main.error", {message: err.message});
@@ -426,6 +447,11 @@ io.on('connect', function(socket){
                         	socket.emit("main.show", "training-menu");
                         });
                     });
+                };
+            	if(data.uid) tagAuth(data.uid, cb);
+            	else loginAuth(data.user, data.pass, function(success, err){
+                	if(!success) cb({message: err});
+                	else cb(null, data.user)
                 });
             }
         }

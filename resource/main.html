@@ -31,7 +31,7 @@
     		<div class="collapse navbar-collapse" id="navbar-collapse">
             	<script type="text/template" class="main-navbar-template">
             		{{#each this}}
-                    	<li class="{{this.class}}"><a href="#"><i class="fa {{this.icon}}"></i> {{this.title}}</a></li>
+                    	{{#unless this.link}}<li class="{{this.class}}"><a href="#"><i class="fa {{this.icon}}"></i> {{this.title}}</a></li>{{/unless}}
                     {{/each}}
             	</script>
       			<ul class="nav navbar-nav navbar-main">
@@ -85,14 +85,14 @@
     	<script type="text/template" class="main-menu-template">
         	{{#each this}}
     			<div class="col-sm-6" style="padding-top:12px;">
-        			<div class="panel panel-default {{this.class}}">
+        			<{{#if this.link}}a href="{{this.link}}" target="_blank"{{else}}div{{/if}} class="panel panel-default {{this.class}}">
         				<div class="panel-body" style="min-height:14em;">
         					<div class="main-select-wrap">
                             	<i class="fa {{this.icon}}" style="font-size:5em;"></i>
                                 <h3>{{this.title}}</h3>
                             </div>
         				</div>
-        			</div>
+        			</{{#if this.link}}a{{else}}div{{/if}}>
         		</div>
             {{/each}}
     	</script>

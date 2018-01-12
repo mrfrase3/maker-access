@@ -217,16 +217,26 @@
     	$(".row.training-menu .inperson-induction").click(function(e){
         	e.preventDefault();
         	if($(this).hasClass("complete")) return;
-        	if(!cardReader || !cardReader.isConnected) return;
 			var label = null;
         	var course = $(this)
         	while(!label){
             	course = course.parent();
             	label = course.attr("data-label");
             }
+        	var message = "Inductor login with Pheme:<br>"
+        	if(cardReader && cardReader.isConnected) message = "Inductor login with Pheme or Scan Card:<br>"
         	swal({
-            	title: "Scan Inductor's Card for Confirmation of Completion",
+            	title: "The Inductor's Confirmation of Completion",
             	type: "info",
+            	html: message+
+    				'<input type="text" id="swal-input-user" class="swal2-input" placeholder="12345678" autocomplete="off">' +
+    				'<input type="password" id="swal-input-pass" class="swal2-input" placeholder="Password" autocomplete="off">',
+            	focusConfirm: false,
+  				preConfirm: () => {
+                	socket.emit("training.induct", {user: $('#swal-input-user').val(), pass: $('#swal-input-pass').val(), label: label});
+                	$('#swal-input-pass').val("");
+    				return;
+  				},
             	onOpen: ()=>{
                 	if(cardReader && cardReader.isConnected){
             			cardReader.on("scan", function(uid){
@@ -245,6 +255,7 @@
         			}
                 }
             });
+        	if(!cardReader || !cardReader.isConnected) return;
         	setTimeout(()=>{
             	$(".swal2-container .swal2-info").html('<i class="fa fa-wifi" style="transform: rotate(90deg);line-height:inherit;"></i>');
             }, 50);

@@ -42,6 +42,11 @@ html {
 	transition: all 0.3s
 }
 
+a.panel {
+	color: #777777;
+	display: block;
+}
+
 .main-menu .panel-body:hover{
 	cursor: pointer;
 	background: lightgray;
