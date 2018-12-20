@@ -1,7 +1,33 @@
+Handlebars.registerHelper('ifeq', function(a, b, options) {
+  if(a == b) {
+    return options.fn(this);
+  } else {
+    return options.inverse(this);
+  }
+});
+Handlebars.registerHelper('contains', function(arr, b, options) {
+	if(arr && arr.indexOf(b) !== -1) {
+	  return options.fn(this);
+	} else {
+	  return options.inverse(this);
+	}
+});
+
 {
 	var templates = {
     	"main-menu": Handlebars.compile($(".main-menu-template").html()),
         "main-navbar": Handlebars.compile($(".main-navbar-template").html())
+    };
+
+	var cardManager = null;
+
+	var displayError = function(err){
+    	swal.close();
+    	swal({
+            	title: err.title || "Error",
+            	type: err.type || "warning",
+        		html: err.message || "An error occured."
+        });
     };
 	
 	var showRow = function(name, data){
@@ -44,10 +70,25 @@
         		$(".training .fa").removeClass("fa-circle-o-notch fa-spin");
             });
         	socket.emit("main.trainingContent");
+        } else if(name == "training-config-menu"){
+        	socket.once("main.trainingConfigContent", function(menu){
+            	trainingConfigMenu(menu);
+            	cb();
+            });
+        	socket.emit("main.trainingConfigContent");
         } else if(name == "keys-menu"){
         	socket.once("main.keysContent", function(menu){
-            	keysMenu(menu);
-            	cb();
+            	cardManager = new PhemeCardManager(menu.userToken);
+            	cardManager.find().catch(displayError).then(function(cards){
+                	menu.keys = cards.map(card=>{
+                    	let createdAt = new Date(card.createdAt);
+                    	return Object.assign({}, card, {
+                    	    created: createdAt.getFullYear() + '-' + (createdAt.getMonth()+1) + '-' + createdAt.getDate(),
+                    	});
+                    });
+                	keysMenu(menu);
+                	cb();
+                });
             });
         	socket.emit("main.keysContent");
         } else if(name == "users-menu"){
@@ -84,7 +125,7 @@
             	cardReader.start();
             }
         	if(window.location.search.indexOf('join') !== -1){
-            	$('.login form button[type="submit"]').text('Join');
+            	$('.login form button[type="submit"]').text('Enter Your Pheme Login To Join!!!');
             }
         	cb();
         } else {
@@ -105,7 +146,7 @@
     });
 
 	socket.on("auth.error", (error)=>{
-    	$(".login .login-error").html(error.message);
+    	$(".login .login-error").html(error.message || error.msg);
     });
 
 	socket.on("auth.makesession", function(token){
@@ -139,14 +180,7 @@
     	$("nav .navbar-fullname a").text(info.fullname + " (" + info.username + ")");
     });
 
-	socket.on("main.error", function(err){
-    	swal.close();
-    	swal({
-            	title: err.title || "Error",
-            	type: err.type || "warning",
-        		text: err.message || "An error occured."
-        });
-    });
+	socket.on("main.error", displayError);
 
 	var mainMenu = function(menu){
     	$(".row.main-menu div").html(templates["main-menu"](menu));
@@ -162,6 +196,10 @@
     	$(".training").click((e)=>{
         	e.preventDefault();
         	showRow("training-menu");
+        });
+    	$(".training-config").click((e)=>{
+        	e.preventDefault();
+        	showRow("training-config-menu");
         });
     	$(".keys").click((e)=>{
         	e.preventDefault();
@@ -198,6 +236,27 @@
 			});
         });
     	$(".join").click();
+    
+    	$(".pass4perm").click(function(e){
+        	e.preventDefault();
+        	var perm = $(this).attr("data-perm");
+            console.log("passing for perm: " + perm)
+			swal({
+				title: 'Enter the magic password',
+				input: 'password',
+				inputPlaceholder: 'SuperSecretPassword',
+				inputAttributes: {
+                	'maxlength': 100,
+                	'autocapitalize': 'off',
+                	'autocorrect': 'off'
+            	}
+        	}).then(result=>{
+            	if(result) {
+                	console.log("sending password attempt");
+                	socket.emit("main.pass4perm", {pass: result, perm: perm});
+                }
+            }).catch(swal.noop);
+        });
     
     	for(let i in menu){
         	if(menu[i].templates){
@@ -262,6 +321,120 @@
         });
     }
     
+    var trainingConfigMenu = function(menu){
+		$(".row.training-config-menu div").html(templates["training-config-menu"](menu));
+    	$("nav .navbar-main, nav .navbar-back").show();
+    	$("nav .navbar-main li").removeClass("active");
+		$("nav .navbar-main .training-config").addClass("active");
+		
+		// Training Actions
+		$('.add-module').click(function(){
+			var training = getTrainingConfig();
+			training.push({title: 'New Training Module', label: 'new-training-module', perms: []});
+			trainingConfigMenu(training);
+		});
+		$('.add-divider').click(function(){
+			var training = getTrainingConfig();
+			training.push({hr: true});
+			trainingConfigMenu(training);
+		});
+		$('.tc-cancel').click(function(){showRow('main-menu')});
+		$('.tc-save').click(function(){socket.emit('trainingConfig.save', getTrainingConfig())});
+		$('.tc-validate').click(function(){socket.emit('trainingConfig.validate', getTrainingConfig())});
+
+		// module Actions
+		$('.ass-add').click(function(){
+			var training = getTrainingConfig();
+			var mod = Number($(this).attr('data-mod'));
+			training[mod].assessments.push({title: 'New Assessment Item', type: 'comment-link'});
+			trainingConfigMenu(training);
+		});
+		$('.mail-add').click(function(){
+			var training = getTrainingConfig();
+			var mod = Number($(this).attr('data-mod'));
+			if (!training[mod].accessmail) training[mod].accessmail = [];
+			training[mod].accessmail.push({email: {subject: 'New Email Notification'}, sendon: 'weekly'});
+			trainingConfigMenu(training);
+		});
+		$('.mod-delete').click(function(){
+			var training = getTrainingConfig();
+			var mod = Number($(this).attr('data-mod'));
+			training.splice(mod, 1);
+			trainingConfigMenu(training);
+		});
+		$('.mod-up').click(function(){
+			var training = getTrainingConfig();
+			var mod = Number($(this).attr('data-mod'));
+			training.splice(mod-1, 0, training.splice(mod, 1)[0]);
+			trainingConfigMenu(training);
+		});
+		$('.mod-down').click(function(){
+			var training = getTrainingConfig();
+			var mod = Number($(this).attr('data-mod'));
+			training.splice(mod+1, 0, training.splice(mod, 1)[0]);
+			trainingConfigMenu(training);
+		});
+		$('.mod-title').keyup(function(){
+			$(this).parents('.mod-item').find('.panel-title').text($(this).val());
+		});
+
+		// Assessment Actions
+		$('.ass-delete').click(function(){
+			var training = getTrainingConfig();
+			var mod = Number($(this).attr('data-mod'));
+			var ass = Number($(this).attr('data-ass'));
+			training[mod].assessments.splice(ass, 1);
+			trainingConfigMenu(training);
+		});
+		$('.ass-up').click(function(){
+			var training = getTrainingConfig();
+			var mod = Number($(this).attr('data-mod'));
+			var ass = Number($(this).attr('data-ass'));
+			training[mod].assessments.splice(ass-1, 0, training[mod].assessments.splice(ass, 1)[0]);
+			trainingConfigMenu(training);
+		});
+		$('.ass-down').click(function(){
+			var training = getTrainingConfig();
+			var mod = Number($(this).attr('data-mod'));
+			var ass = Number($(this).attr('data-ass'));
+			training[mod].assessments.splice(ass+1, 0, training[mod].assessments.splice(ass, 1)[0]);
+			trainingConfigMenu(training);
+		});
+		$('.ass-type').change(function(){
+			var training = getTrainingConfig();
+			var mod = Number($(this).attr('data-mod'));
+			var ass = Number($(this).attr('data-ass'));
+			trainingConfigMenu(training);
+			$('#accord-tc-'+mod+'-'+ass).prop('checked', true);
+		});
+		$('.ass-title').keyup(function(){
+			$(this).parents('.ass-item').find('.accord-tc-label').text($(this).val());
+		});
+
+		// Mail Actions
+		$('.mail-delete').click(function(){
+			var training = getTrainingConfig();
+			var mod = Number($(this).attr('data-mod'));
+			var mail = Number($(this).attr('data-mail'));
+			training[mod].accessmail.splice(mail, 1);
+			if(!training[mod].accessmail.length) delete training[mod].accessmail;
+			trainingConfigMenu(training);
+		});
+		$('.mail-sendon').change(function(){
+			$(this).parents('.mail-item').find('.show-weekly').toggle($(this).val() === 'weekly');
+		});
+		$('.mail-subject').keyup(function(){
+			$(this).parents('.mail-item').find('.accord-tc-label').text($(this).val());
+		});
+
+		$('.accord-tc-label').click(function(e){
+			e.preventDefault();
+			$input = $('#' + $(this).attr('for'));
+			$input.prop('checked', !$input.prop('checked'));
+		});
+
+    }
+    
     var keysMenu = function(menu){
     	$(".row.keys-menu div").html(templates["keys-menu"](menu));
     	$("nav .navbar-main, nav .navbar-back").show();
@@ -284,62 +457,149 @@
             	confirmButtonText: "Remove",
             	confirmButtonColor: "red"
 			}).then(function(){
-            	socket.emit("keys.remove",  $(self).parent().attr("index") );
-            	console.log($(self).parent().attr("index"));
+            	cardManager.delete($(self).parent().attr("card-id")).catch(displayError).then(function(card){
+            		$('li[card-id="'+card.cardId+'"]').remove();
+                });
             }).catch(swal.noop);
         });
     	$(".row.keys-menu .add-key").click((e)=>{
         	e.preventDefault();
         	swal({
-            	title: "Scan New Card to Add",
-            	type: "info",
-            	onOpen: ()=>{
-                	if(cardReader && cardReader.isConnected){
-            			cardReader.on("scan", function(uid){
-                        	const { remote } = require('electron')
-							if(remote.BrowserWindow.getFocusedWindow()){
-                				socket.emit("keys.add", {uid: "" + uid.byte[0] + uid.byte[1] + uid.byte[2] + uid.byte[3]});
-                            }
-                		});
-            			cardReader.start();
-            		}
-                },
-            	onClose: ()=>{
-                	if(cardReader && cardReader.isConnected){
-        				cardReader.removeAllListeners("scan");
-        				if(cardReader.isScanning) cardReader.stop();
-        			}
-                }
-            }).catch(swal.noop);
-        	setTimeout(()=>{
-            	$(".swal2-container .swal2-info").html('<i class="fa fa-wifi" style="transform: rotate(90deg);line-height:inherit;"></i>');
-            }, 50);
+            	title: 'What would you like to name your card?',
+            	text: '(optional)',
+            	type: 'question',
+            	input: 'text',
+            	inputPlaceholder: 'Student Card',
+            	showCancelButton: true,
+            	showConfirmButton: true,
+            	confirmButtonText: "Next",
+            }).catch(swal.noop).then(function(res){
+            	var name = res || '';
+        		swal({
+            		title: "Scan New Card to Add",
+            		type: "info",
+            		onOpen: ()=>{
+                		if(cardReader && cardReader.isConnected){
+            				cardReader.on("scan", function(uid){
+                	        	const { remote } = require('electron')
+								if(remote.BrowserWindow.getFocusedWindow()){
+                                	var uuid = [uid.byte[0], uid.byte[1], uid.byte[2], uid.byte[3]];
+                					cardManager.create(uuid, name).catch(displayError).then(function(card){
+                                    	menu.keys = cardManager.cards;
+                                    	swal.close();
+                                    	keysMenu(menu);
+                                    });
+                	            }
+                			});
+            				cardReader.start();
+            			}
+                	},
+            		onClose: ()=>{
+                		if(cardReader && cardReader.isConnected){
+        					cardReader.removeAllListeners("scan");
+        					if(cardReader.isScanning) cardReader.stop();
+        				}
+                	}
+            	}).catch(swal.noop);
+        		setTimeout(()=>{
+            		$(".swal2-container .swal2-info").html('<i class="fa fa-wifi" style="transform: rotate(90deg);line-height:inherit;"></i>');
+            	}, 50);
+            });
+        });
+    	
+    	$('.keys-menu span[contenteditable="true"]').blur(function(ev){
+        	const cardId = $(this).parent().attr('card-id');
+        	$(this).text($(this).text().replace('\n', '').trim());
+        	cardManager.patch(cardId, $(this).text()).catch(displayError);
+        });
+    	$('.keys-menu span[contenteditable="true"]').keyup(function(ev){
+        	if((ev.key && ev.key.toLowerCase() === 'enter') || ev.which === 13 ){
+            	ev.preventDefault();
+            	$(this).blur();
+            }
         });
     }
     
     var usersMenu = function(menu){
-    	if(menu.write) $(".row.users-menu .users-menu-users").addClass("can-write");
+    	var $menuUsers = $(".row.users-menu .users-menu-users");
+    	if(menu.write) $menuUsers.addClass("can-write");
     	menu.users.sort(function (a, b) {
 			return a.fullname.toLowerCase().localeCompare(b.fullname.toLowerCase());
 		});
-    	$(".row.users-menu .users-menu-users > div").remove();
-    	for(var i in menu.users){
-    		$(".row.users-menu .users-menu-users").append(templates["users-menu"](menu.users[i]));
-    	}
+    
+    	var renderUser = function(user){ $menuUsers.append(templates["users-menu"](user)); };
+    
+    	var renderUsers = function(){
+        	let search = $(".users-menu input[type=text]").val();
+        	$(".row.users-menu .users-menu-users > div").remove();
+            if(search.length < 3) return $menuUsers.append('<div>Search 3 or more characters to find a user/permission</div>');
+        	let count = 0;
+            for(var i in menu.users){
+            	var user = menu.users[i];
+            	if(
+                	user.username.indexOf(search) !== -1 ||
+                	user.fullname.toLowerCase().indexOf(search) !== -1 ||
+					user.perms.reduce(function(a, perm){
+                    	if(perm.perm.indexOf(search) !== -1) a.push(perm);
+                    	return a;
+                    }, []).length > 0
+                ){
+                 	count++;
+                	if(count > 31) continue;
+                	renderUser(user);
+                }
+            }
+        
+        	if(count > 31) $menuUsers.append(`<div>Only showing 30 of ${count} users, please refine your search.</div>`);
+        
+        $(".users-menu-users label").click(function(e){
+            if(!$(this).attr("for")) return;
+            let radio = $("input#"+$(this).attr("for"));
+            if(radio.prop("checked")){
+                radio.prop({checked: false});
+                e.preventDefault();
+            }
+        });
+
+        $(".users-menu-users.can-write .users-perm-add").click(function(e){
+            var self = this;
+            if( $("input#users-usercb-"+$(self).attr("data-user") ).is(":checked") ){
+                e.preventDefault();
+                setTimeout(()=>{
+                    $("input#users-usercb-"+$(self).attr("data-user") ).prop("checked", true);
+                }, 10);
+            }
+            swal({
+                title: 'Select a Permission to Add',
+                input: 'select',
+                inputOptions: menu.editable,
+                inputPlaceholder: 'Select Permission',
+                showCancelButton: true
+            }).then(function (result) {
+                socket.emit("users.perm-write", {username: $(self).attr("data-user"), perm: menu.editable[result], action: "add"});
+            }).catch(swal.noop);
+        });
+
+        $(".users-menu-users.can-write .writable .users-perm-remove").click(function(e){
+            if( !$("input[value=\""+$(this).attr("data-user")+"-"+$(this).attr("data-perm")+"\"]" ).is(":checked") ){
+                e.preventDefault();
+            }
+            socket.emit("users.perm-write", {username: $(this).attr("data-user"), perm: $(this).attr("data-perm"), action: "remove"});
+        });
+
+        $(".users-menu-users.can-write .perm-enable-toggle").click(function(e){
+            socket.emit("users.perm-write", {username: $(this).attr("data-user"), perm: $(this).attr("data-perm"), action: "toggle"});
+        });
+        
+        };
+    	renderUsers();
+    	
     	$("nav .navbar-main, nav .navbar-back").show();
     	$("nav .navbar-main li").removeClass("active");
     	$("nav .navbar-main .users").addClass("active");
     
-    	$(".users-menu-users label").click(function(e){
-        	if(!$(this).attr("for")) return;
-        	let radio = $("input#"+$(this).attr("for"));
-        	if(radio.prop("checked")){
-            	radio.prop({checked: false});
-            	e.preventDefault();
-            }
-        });
-    
     	$(".users-menu input[type=text]").keyup(()=>{
+        	return renderUsers();
         	let search = $(".users-menu input[type=text]").val();
         	$(".users-menu-users > .list-group-item").show();
         	if(search){
@@ -351,36 +611,64 @@
             }
         });
     
-    	$(".users-menu-users.can-write .users-perm-add").click(function(e){
-        	var self = this;
-        	if( $("input#users-usercb-"+$(self).attr("data-user") ).is(":checked") ){
-            	e.preventDefault();
-            	setTimeout(()=>{
-                	$("input#users-usercb-"+$(self).attr("data-user") ).prop("checked", true);
-                }, 10);
-            }
-        	swal({
-				title: 'Select a Permission to Add',
-				input: 'select',
-				inputOptions: menu.editable,
-				inputPlaceholder: 'Select Permission',
-				showCancelButton: true
-			}).then(function (result) {
-				socket.emit("users.perm-write", {username: $(self).attr("data-user"), perm: menu.editable[result], action: "add"});
-			}).catch(swal.noop);
-        });
-    
-    	$(".users-menu-users.can-write .writable .users-perm-remove").click(function(e){
-        	if( !$("input[value=\""+$(this).attr("data-user")+"-"+$(this).attr("data-perm")+"\"]" ).is(":checked") ){
-            	e.preventDefault();
-            }
-        	socket.emit("users.perm-write", {username: $(this).attr("data-user"), perm: $(this).attr("data-perm"), action: "remove"});
-        });
-    
-    	$(".users-menu-users.can-write .perm-enable-toggle").click(function(e){
-        	socket.emit("users.perm-write", {username: $(this).attr("data-user"), perm: $(this).attr("data-perm"), action: "toggle"});
-        });
-    
-    }
+	}
+
+	var str2arr = function(str){ return str.replace(/\s/g, '').split(','); };
+	
+	var getTrainingConfig = function(){
+		var training = [];
+		$('.mod-item').each(function(i){
+			var $mod = $(this);
+			if($mod.has('.mod-divider').length) return training.push({hr: true});
+			var module = {
+				title: $mod.find('.mod-title').val().trim(),
+				label: $mod.find('.mod-label').val().replace(/[^\w-]/g, ''),
+				perms: str2arr($mod.find('.mod-perms').val()),
+				assessments: [],
+			};
+			$mod.find('.ass-item').each(function(j){
+				var $ass = $(this);
+				var assessment = {
+					title: $ass.find('.ass-title').val().trim(),
+					type: $ass.find('.ass-type').val().trim(),
+					required: $ass.has('.ass-required:checked').length > 0,
+					link: $ass.find('.ass-link').val(),
+					results: $ass.find('.ass-results').val(),
+					reqmark: Number($ass.find('.ass-reqmark').val()) || 0,
+					perm: $ass.find('.ass-perm').val(),
+					trainingPerm: $ass.find('.ass-trainingPerm').val(),
+					time: Number($ass.find('.ass-time').val()) || 0,
+				};
+				module.assessments.push(assessment);
+			});
+			if(!$mod.has('.mail-item').length) return training.push(module);
+			module.accessmail = [];
+			$mod.find('.mail-item').each(function(j){
+				var $mail = $(this);
+				var mail = {
+					type: $mail.find('.mail-type').val().trim(),
+					sendon: $mail.find('.mail-sendon').val().trim(),
+					email: {
+						subject: $mail.find('.mail-subject').val().trim(),
+						from: $mail.find('.mail-from').val().trim(),
+						to: str2arr($mail.find('.mail-to').val()),
+						cc: str2arr($mail.find('.mail-cc').val()),
+						bcc: str2arr($mail.find('.mail-bcc').val()),
+						html: $mail.find('.mail-html').val().trim(),
+					},
+				};
+				if(mail.sendon === 'weekly') {
+					mail.hour = Number($mail.find('.mail-hour').val()) || 0;
+					mail.days = [];
+					$mail.find('input[name=mail-days-'+i+'-'+j+']:checked').each(function(){
+						mail.days.push(Number($(this).val()));
+					});
+				}
+				module.accessmail.push(mail);
+			});
+			return training.push(module);
+		});
+		return training;
+	};
 
 }

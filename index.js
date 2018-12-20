@@ -15,8 +15,8 @@ var ObjectId = require('mongodb').ObjectID;
 var database, usersdb, tagsdb, permsdb, logsdb, tokensdb;
 var perms, mailchimp;
 
-var get_quiz_results = require("./lib/get_quiz_results.js");
 var check_user_training = require("./lib/check_user_training.js");
+var validate_training_config = require("./lib/validateTrainingConfig.js");
 // get the SSL keys, change to location of your certificates
 var server;
 var re_server;
@@ -35,6 +35,7 @@ if(config.https.enabled){
 var io = require("socket.io")(server);
 var bodyParser = require("body-parser");
 var helmet = require("helmet");
+var userTokens = {};
 
 // token generator, pretty random, but can be replaced if someone has something stronger
 var token = function() {
@@ -46,12 +47,12 @@ var getTemplates = function(){
 	fs.readdir(__dirname + '/templates/', function(err, files){
     	if(err) return console.error(err);
 		files.forEach( function(file){
-        	if(file.search(/[.](html|hb|handlebars)$/) === -1) return;
+        	if(file.search(/[.](html|hbs|handlebars)$/) === -1) return;
         	fs.readFile(__dirname + '/templates/' + file, 'utf8', function(err, data){
             	if(err) return console.error(err);
-            	let templatename = file.replace(/[.](html|hb|handlebars)$/, '');
+            	let templatename = file.replace(/[.](html|hbs|handlebars)$/, '');
             	templates[templatename] = data;
-            	console.log(templates);
+            	// console.log(templates);
             });
         });
     });
@@ -99,7 +100,6 @@ app.use("/sockauth", function(req, res){
 	} else if(req.session.user){
     	hasher(token(), function(tok){
         	if(!tok) tok = token();
-        	console.log(tok);
         	tokensdb.insertOne({token: tok, user: req.session.user, enabled: true, added: new Date()}, function(err){
             	if(err){
 					console.error(error);
@@ -117,6 +117,25 @@ app.use("/sockauth", function(req, res){
     }
 });
 
+app.get('/api/perms', (req, res) => {
+	let token = req.get('authorization');
+    if(token){ 
+        let [user, pass] = new Buffer(token.split(" ").pop(), "base64").toString("ascii").split(":");
+        token = pass || user;
+    } else if(req.query.token && typeof req.query.token === 'string') token = req.query.token;
+	else return res.status(401).send('Authentication Token Required.');
+	tokenAuth(token, function(err, un){
+		if(err){
+			return res.status(401).send('Invalid Authentication Token.');
+		}
+		permsdb.find({username: un, enabled: true}).toArray((err, perms) => {
+			if(err) return res.status(500).send('Unable to find perms.');
+			res.send(perms.map(p => p.perm).join(','));
+		});
+	});
+});
+
+/*
 app.get("/api/user", function(req,res){
 	if(req.query.uid && typeof req.query.uid === 'string'){
     	tagAuth(req.query.uid, function(err, un){
@@ -129,7 +148,7 @@ app.get("/api/user", function(req,res){
 });
 
 app.get("/api/perms/has", function(req,res){
-	let queriableperms = ["equipment.pcbmill", "equipment.lasercutter", "equipment.3dp", "equipment.dremel", "equipment.test"];
+	let queriableperms = ["equipment.pcbmill", "equipment.laser", "equipment.3dp", "equipment.basic", "equipment.mill", "equipment.test"];
 	if(!req.query.perm || typeof req.query.perm !== 'string' || queriableperms.indexOf(req.query.perm) === -1){
     	return res.json({success: false, message: "Invalid perameters given. perm required."});
     }
@@ -144,6 +163,7 @@ app.get("/api/perms/has", function(req,res){
 		});
     } else return res.json({success: false, message: "Invalid perameters given. uid required."});
 });
+*/
 
 app.use("/doorlist.csv", function(req, res){
 	res.type('text/csv');
@@ -190,49 +210,74 @@ var hasher = function(tohash, cb){
 	hash.end();
 }
 
+var handlePostAuth = function(body, cb){
+	if(!body.success) return cb(false, body.message);
+	var user = body.user.username;
+	userTokens[user] = body.userToken;
+    usersdb.count({username: user}, function(err, has){
+    	if(err) return cb({msg: "A problem occured on the server. Please contact an admin. 5832"});
+        if(!has){
+        	usersdb.insertOne({
+				username: user, 
+				mail: body.user.email,
+				prefmail: body.user.email,
+				fullname: body.user.fullname,
+				firstname: body.user.firstname,
+				surname: body.user.lastname, 
+				added: new Date()
+			}, function(err){
+				if(err) {
+					cb({msg: "A problem occured on the server. Please contact an admin. 3649"});
+					console.error(err);
+				} else cb(null, user);
+			});
+        } else {
+           	usersdb.updateOne({username: user}, {$set: {
+				fullname: body.user.fullname,
+				firstname: body.user.firstname,
+				surname: body.user.lastname
+			}}, function(err){
+				if(err) {
+                    cb({msg: "A problem occured on the server. Please contact an admin. 3648"});
+                    console.error(err);
+                } else cb(null, user);
+            });
+        }
+    });
+};
+var apiToken = 'e3a8adc963d55ed29c62925634c5a4c5f4bdb59ef8fb2f54e3bcf42419d65ed0';
+
 var loginAuth = function(user, pass, cb){
 	if(!user || !pass || !user.trim() || !pass.trim() ) return cb(false);
 	user = user.trim();
-	request.post('https://auth.makeuwa.com/api/login', 
+	request.post('https://auth.uwamakers.com/api/login', 
 		{json: true, body:{
+        	"token": apiToken,
     		"user": user,
-    		"pass" : pass
+    		"pass" : pass,
+        	"userToken": 86400000,
 		}}, (err, res, body) => {
 			if(err || !res || res.statusCode !== 200){
             	if(err) console.error(err);
-				return cb(false, "Error: Could not reach authentication server.");
+				return cb({msg: body.message || "Error: Could not reach authentication server."});
 			}
-            if(!body.success) return cb(false, body.message);
-    		usersdb.count({username: user}, function(err, has){
-            	if(err) return cb(false, "A problem occured on the server. Please contact an admin. 5832");
-                if(!has){
-					usersdb.insertOne({
-						username: user, 
-						mail: body.user.mail,
-						prefmail: body.user.mail,
-						fullname: body.user.fullname,
-						firstname: body.user.firstname,
-						surname: body.user.surname, 
-						added: new Date()
-					}, function(err){
-						if(err) {
-							cb(false, "A problem occured on the server. Please contact an admin. 3649");
-							console.error(err);
-						} else cb(true);
-					});
-                } else {
-                	usersdb.updateOne({username: user}, {$set: {
-						fullname: body.user.fullname,
-						firstname: body.user.firstname,
-						surname: body.user.surname
-					}}, function(err){
-						if(err) {
-                            cb(false, "A problem occured on the server. Please contact an admin. 3648");
-                            console.error(err);
-                        } else cb(true);
-                    });
-                }
-            });
+            handlePostAuth(body, cb);
+		}
+    );
+};
+
+var tokenAuth = function(token, cb){
+	if(!token || typeof token !== 'string' ) return cb(false);
+	request.post('https://auth.uwamakers.com/api/user/userToken', 
+		{json: true, body:{
+        	"token": token,
+        	"userToken": 86400000,
+		}}, (err, res, body) => {
+			if(err || !res || res.statusCode !== 200){
+            	if(err) console.error(err);
+				return cb({msg: body ? body.message : "Error: Could not reach authentication server."});
+			}
+            handlePostAuth(body, cb);
 		}
     );
 };
@@ -240,26 +285,19 @@ var loginAuth = function(user, pass, cb){
 var tagAuth = function(rawuid, cb){
 	if(!cb) cb = function(){};
 	if(rawuid.search(/[1-9]/) === -1 || rawuid.search(/[^0-9]/) !== -1) return cb( {message: "Invalid card, please try using a different card."}, null);
-	hasher(rawuid, function(uid){
-		if(uid){
-			tagsdb.count({uid: uid, enabled: true}, function(err, count){
-				if(err){
-					console.error(err);
-					return cb( {message: "A problem occured on the server. Please contact an admin. 5874"}, null);
-				}
-				if(count < 1) return cb( {message: "Unknown card, You must first register this card.", unregistered: true}, null);
-				tagsdb.findOne({uid: uid, enabled: true}, function(err, tag){
-					if(err){
-						console.error(err);
-						return cb( {message: "A problem occured on the server. Please contact an admin. 3647"}, null);
-					}
-					cb(null, tag.username);
-				});
-			});
-		} else {
-			cb( {message: "A problem occured on the server. Please contact an admin. 4582"}, null);
+	request.post('https://auth.uwamakers.com/api/card', 
+		{json: true, body:{
+        	"token": apiToken,
+    		"uuid": rawuid,
+        	"userToken": 86400000,
+		}}, (err, res, body) => {
+			if(err || !res || res.statusCode !== 200){
+            	if(err) console.error(err);
+				return cb({msg: "Error: Could not reach authentication server."});
+			}
+            handlePostAuth(body, cb);
 		}
-	});
+    );
 }
 
 io.on('connect', function(socket){
@@ -309,11 +347,11 @@ io.on('connect', function(socket){
             } else if(typeof data.pass !== 'string' || !data.pass.trim()){
             	socket.emit('auth.error', {message: "A password is required."});
             } else {
-            	loginAuth(data.user, data.pass, function(success, msg){
-                	if(success){
+            	loginAuth(data.user, data.pass, function(err, username){
+                	if(!err){
                     	login_success(data.user, true);
                     } else {
-                    	socket.emit('auth.error', {message: msg});
+                    	socket.emit('auth.error', err);
                     }
                 });
             }
@@ -332,13 +370,15 @@ io.on('connect', function(socket){
     	var menu = [
         	{title: "Training", icon: "fa-graduation-cap", class: "training", templates: {"training-menu": templates["training"]} },
         	{title: "Manage Key Cards", icon: "fa-id-card-o", class: "keys", templates: {"keys-menu": templates["keys"]} },
+        	{title: "Makers Wiki", icon: "fa-wikipedia-w", class: "wiki", link: "https://wiki.uwamakers.com/" },
         	{title: "Facebook Group", icon: "fa-facebook-official", class: "facebook", link: "https://www.facebook.com/groups/uwamakers/" },
-        	{title: "Slack Channel", icon: "fa-slack", class: "slack", link: "https://makeuwa.slack.com/" }
+        	{title: "Slack Channel", icon: "fa-slack", class: "slack", link: "https://makeuwa.slack.com/" },
+        	{title: "Join Coders 4 Causes?", icon: "fa-code", link: "https://codersforcauses.org/register"},
         ];
     	var count = 0;
     	var cb = function(){
         	count++;
-        	if(count != 2) return;
+        	if(count != 3) return;
         	if(!joined) menu = [{title: "Join Makers!", icon: "fa-rocket", class: "join"}];
         	menu.push({title: "Logout", icon: "fa-sign-out", class: "logout"});
     		socket.emit("main.menuContent", menu);
@@ -351,7 +391,10 @@ io.on('connect', function(socket){
         	if(has) menu.push({title: "Users and Permissions", icon: "fa-users", class: "users", templates: {"users-menu": templates["users"]}});
         	cb();
         });
-        
+        perms.has(socket.user, ["training.write"], function(has){
+        	if(has) menu.push({title: "Training Config", icon: "fa-list-alt", class: "training-config", templates: {"training-config-menu": templates["training-config"]}});
+        	cb();
+        });
         
     });
 	
@@ -359,35 +402,28 @@ io.on('connect', function(socket){
     	if(!socket.user) return;
     	usersdb.findOne({username: socket.user}, function(err, user){
         	if(err) return console.error(err);
-        	get_quiz_results([user.mail], config.googleQuizResults, function(err, results){
-        		if(err) return console.error(err);
-            	check_user_training(user, results, perms, content => {
-                	socket.emit("main.trainingContent", content);
-                });
-            });
+			check_user_training(user, perms, content => {
+				socket.emit("main.trainingContent", content);
+			});
+        });
+    });
+	
+	socket.on("main.trainingConfigContent", function(){
+    	if(!socket.user) return;
+    	var training = JSON.parse(fs.readFileSync('./training.json'));
+    	perms.has(socket.user, ["training.write"], function(has){
+    		if(!has) return socket.emit("main.error", {message: "You do not have the permission to edit the training."});
+    		socket.emit("main.trainingConfigContent", training);
         });
     });
 
 	socket.on("main.keysContent", function(){
     	if(!socket.user) return;
     	var menu = {
-        	keys: [],
+        	userToken: userTokens[socket.user],
         	max: config.keyMax
         };
-        perms.has(socket.user, "keys.unlimited", function(has){
-        	if(has) menu.max = -1;
-        	tagsdb.find({username: socket.user}).toArray(function(err, tags){
-            	if(err) return console.error(err);
-            	for(var i in tags){
-                	if(tags[i].enabled){
-                    	var added = new Date(tags[i].added || Date.now());
-                    	menu.keys.push({keynum: Number(i)+1, added: added.toLocaleString()});
-                    }
-                }
-            	menu.keyslen = menu.keys.length;
-    			socket.emit("main.keysContent", menu);
-            });
-        });
+    	socket.emit('main.keysContent', menu);
     });
 
 	socket.on("main.usersContent", function(){
@@ -396,7 +432,22 @@ io.on('connect', function(socket){
         	users: [],
         	write: false,
         	editable: config.editableperms
-        };
+		};
+		var training = JSON.parse(fs.readFileSync('./training.json'));
+		for (let i in training){
+			if(training[i].hr) continue;
+			for (let p of training[i].perms) if(menu.editable.indexOf(p) === -1) menu.editable.push(p)
+			for (let j in training[i].assessments){
+				if(
+					training[i].assessments[j].perm
+					&& menu.editable.indexOf(training[i].assessments[j].perm) === -1
+				) menu.editable.push(training[i].assessments[j].perm);
+				if(
+					training[i].assessments[j].trainingPerm
+					&& menu.editable.indexOf(training[i].assessments[j].trainingPerm) === -1
+				) menu.editable.push(training[i].assessments[j].trainingPerm);
+			}
+		}
     	perms.has(socket.user, ["users.read", "users.write"], function(has){
         	if(!has) return;
         	perms.has(socket.user, ["users.write"], function(has){
@@ -429,7 +480,7 @@ io.on('connect', function(socket){
     	if(!(data.uid && typeof data.uid == 'string' && data.uid.trim() != "") && 
            !(data.user && typeof data.user == 'string' && data.user.trim() != "" && data.pass && typeof data.pass == 'string' && data.pass.trim() != "")) return;
     	if(!(data.label && typeof data.label == 'string' && data.label.trim() != "")) return;
-    	var training = require("./training.json");
+    	var training = JSON.parse(fs.readFileSync('./training.json'));
     	for(var i in training){
         	if(training[i].label != data.label) continue;
         	for(var j in training[i].assessments){
@@ -449,15 +500,45 @@ io.on('connect', function(socket){
                     });
                 };
             	if(data.uid) tagAuth(data.uid, cb);
-            	else loginAuth(data.user, data.pass, function(success, err){
-                	if(!success) cb({message: err});
-                	else cb(null, data.user)
+            	else loginAuth(data.user, data.pass, function(err, username){
+                	if(err) cb(err);
+                	else cb(null, data.user);
                 });
             }
         }
-    });
+	});
+	
+	socket.on("trainingConfig.save", function(data){
+		if(!socket.user) return;
+		perms.has(socket.user, ["training.write"], function(has){
+    		if(!has) return socket.emit("main.error", {message: "You do not have the permission to edit the training."});
+			validate_training_config(data).catch((err) => {
+				socket.emit("main.error", {message: err.message});
+			}).then( (training) => {
+				const trainJson = JSON.stringify(training, null, 2);
+				logsdb.insertOne({action: "trainingConfig.save", details: {training: trainJson}, time: new Date()});
+				fs.writeFileSync('./training.json', trainJson);
+				socket.emit("main.error", {type: 'success', title: 'Success!', message: 'The training structure provided has been saved!'});
+				socket.emit("main.trainingConfigContent", training);
+			});
+        });
+	});
 
-	socket.on("keys.add", function(data){
+	socket.on("trainingConfig.validate", function(data){
+		if(!socket.user) return;
+		perms.has(socket.user, ["training.write"], function(has){
+    		if(!has) return socket.emit("main.error", {message: "You do not have the permission to edit the training."});
+			validate_training_config(data).then( (training) => {
+				const trainJson = JSON.stringify(training, null, 2);
+				socket.emit("main.error", {type: 'success', title: 'Success!', message: 'The training structure provided is valid!'});
+				socket.emit("main.trainingConfigContent", training);
+			}).catch((err) => {
+				socket.emit("main.error", {message: err.message});
+			});
+        });
+	});
+
+	/*socket.on("keys.add", function(data){
     	if(!socket.user) return;
     	if(!(data.uid &&  typeof data.uid == 'string' &&  data.uid.trim() != "")) return;
     	var doneNumCheck = function(){
@@ -505,10 +586,9 @@ io.on('connect', function(socket){
             	socket.emit("main.show", "keys-menu");
             });
         });
-    });
+    });*/
 
 	socket.on("users.perm-write", function(data){
-    	console.log(data);
     	if(!socket.user || !data.username || typeof data.username !== 'string' || 
            !data.perm || typeof data.perm !== 'string' || !data.action || typeof data.action !== 'string' ) return;
     	if(data.action != "toggle" && config.editableperms.indexOf(data.perm) === -1) return;
@@ -541,6 +621,22 @@ io.on('connect', function(socket){
     	if(result) mailchimp.subscribe(socket.user, "newsletter", cb);
     });
 
+	socket.on('main.pass4perm', function(data){
+    	if(!socket.user) return;
+    	if(!data.perm || !data.pass ) return;
+    	if(!config.pass4perm || !config.pass4perm[data.perm] || config.pass4perm[data.perm] !== data.pass){
+        	return socket.emit("main.error", {message: "Incorrect Password."});
+        }
+    	perms.has(socket.user, "joining.joined", function(has){
+        	if(!has) return socket.emit("main.error", {message: "You must first join the makers."});
+			perms.add(socket.user, data.perm, undefined, function(success){
+				if(!success) return socket.emit("main.error", {message: "A problem occured on the server. Please contact an admin. 8652"});
+				socket.emit("main.show", "main-menu");
+            	socket.emit("main.error", {title: "Success!", type: "success", message: "Success!"});
+			});
+        });
+    });
+
 });
 
 
@@ -560,21 +656,10 @@ MongoClient.connect('mongodb://' + config.mongo.host+':' + config.mongo.port + '
         	var interval_checks = function(){
             	usersdb.find().toArray(function(err, users){
                 	if(err) return console.error(err);
-                	get_quiz_results(users, config.googleQuizResults, function(err, results){
-        				if(err) return console.error(err);
-                    	var completed = 0;
-                    	users.forEach(function(user){
-                        	if(results[user.mail]){
-            					check_user_training(user, results, perms, content => {
-                            		completed++;
-                            		if(completed == users.length) check_mail();
-                				});
-                            } else {
-                            	completed++;
-                            	if(completed == users.length) check_mail();
-                            }
-                        });
-            		});
+					var completed = 0;
+					check_user_training(users, perms, content => {
+						check_mail();
+					});
                 });
             }
         	setInterval(interval_checks, 10*60*1000);

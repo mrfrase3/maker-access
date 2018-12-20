@@ -53,6 +53,10 @@ a.panel {
 	color: black;
 }
 
+.main-menu .panel.training {
+    background: #eeffee;
+}
+
 .training-menu input {
   position: absolute;
   opacity: 0;

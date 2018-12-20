@@ -22,7 +22,9 @@
 						"users.write",
     					"users.read",
     					"testing.test",
-    					"joining.joined"
+    					"joining.joined",
+    					"joining.c4c",
+    					"joining.eeewa"
 					],
     "smtp"			: {
         				"host"	: "example.com",
@@ -44,5 +46,9 @@
                         	"makers": "joining.joined",
                         	"newsletter": "joining.newsletter"
                         }
-    				}
+    				},
+	"pass4perm"		: {
+						"joining.c4c": "chrisbambam",
+    					"joining.eeewa": "lick2test"
+					}
 }

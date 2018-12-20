@@ -1,10 +1,10 @@
 			<div class="col-xs-10 col-xs-offset-1" style="padding-top:12px;">
-                {{#if this.keyslen}}
+                {{#if this.keys.length}}
         			<div class="panel panel-default {{this.class}}">
         				<ul class="panel-body list-group" style="padding:0px;">
                         	{{#each this.keys}}
-                            	<li class="list-group-item" index="{{this.keynum}}">
-                                	Card Number {{this.keynum}} - Added on: {{this.added}}
+                            	<li class="list-group-item" card-id="{{this.cardId}}">
+                                	<span contenteditable="true">{{this.name}}</span> - Added on: {{this.created}}
                             		<i class="fa fa-trash"></i>
                                 </li>
                             {{/each}}

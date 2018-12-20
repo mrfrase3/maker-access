@@ -1,0 +1,388 @@
+<div class="action-wrap" style="margin: 18px 0;"><div class="btn-group" role="group">
+  <button type="button" class="btn add-module btn-default">+ Add Module</button>
+  <button type="button" class="btn add-divider btn-default">+ Add Divider</button>
+  <button type="button" class="btn tc-validate btn-default">Validate</button>
+  <button type="button" class="btn tc-save btn-success">Save</button>
+  <button type="button" class="btn tc-cancel btn-primary">Cancel</button>
+</div></div>
+
+{{#each this}}
+<div class="panel panel-default mod-item">
+	{{#unless hr}}
+	<div class="panel-heading">
+		<h3 class="panel-title">{{title}}</h3>
+    	
+        <div class="mod-actions">
+            <i class="fa fa-trash mod-delete" data-mod="{{@index}}"  data-toggle="tooltip" title="Delete Module"></i>
+        	<i class="fa fa-plus ass-add" data-mod="{{@index}}" data-toggle="tooltip" title="Add Assessment"></i>
+        	<i class="fa fa-envelope mail-add" data-mod="{{@index}}" data-toggle="tooltip" title="Add Mail Notification"></i>
+            {{#unless @first}}<i class="fa fa-arrow-up mod-up" data-mod="{{@index}}"  data-toggle="tooltip" title="Move Up"></i>{{/unless}}
+            {{#unless @last}}<i class="fa fa-arrow-down mod-down" data-mod="{{@index}}"  data-toggle="tooltip" title="Move Down"></i>{{/unless}}
+        </div>
+	</div>
+	<div class="panel-body">
+		<div class="form-group">
+			<label for="tc-title-{{@index}}">Module Title (display text)</label>
+			<input
+				type="text"
+				class="form-control mod-title" id="tc-title-{{@index}}"
+				placeholder="Training For Machine"
+                value="{{title}}"
+            >
+		</div>
+		<div class="form-group">
+			<label for="tc-label-{{@index}}">Module Label (identifier, do not change once set!)</label>
+			<input
+				type="text"
+				class="form-control mod-label" id="tc-label-{{@index}}"
+				placeholder="machine-training"
+                value="{{label}}"
+            >
+		</div>
+		<div class="form-group">
+			<label for="tc-perms-{{@index}}">Perms Added On Completion (comma separated)</label>
+			<input
+				type="text"
+				class="form-control mod-perms" id="tc-perms-{{@index}}"
+				placeholder="equipment.machine, equipment.machine2"
+                value="{{#each perms}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}"
+            >
+		</div>
+    	<span>Assessments:</span>
+	</div>
+	<div class="">
+    	<ul class="list-group" style="margin-bottom: 0;">
+        	{{#each assessments}}
+				<li class="list-group-item ass-item">
+                	<input id="accord-tc-{{@../index}}-{{@index}}" name="accord-tc-{{@../index}}" type="radio" class="accord-tc-input">
+                	<label for="accord-tc-{{@../index}}-{{@index}}" class="accord-tc-label">{{title}}</label>
+                	<div class="ass-actions">
+                       	<i class="fa fa-trash ass-delete" data-mod="{{@../index}}" data-ass="{{@index}}" data-toggle="tooltip" title="Delete Assessment"></i>
+                       	{{#unless @first}}<i class="fa fa-arrow-up ass-up" data-mod="{{@../index}}" data-ass="{{@index}}" data-toggle="tooltip" title="Move Up"></i>{{/unless}}
+                       	{{#unless @last}}<i class="fa fa-arrow-down ass-down" data-mod="{{@../index}}" data-ass="{{@index}}" data-toggle="tooltip" title="Move Down"></i>{{/unless}}
+                    </div>
+                	<div class="accord-tc-body">
+                    	<div class="form-group">
+							<label for="ass-title-{{@../index}}-{{@index}}">Assessment Title (display text)</label>
+							<input
+								type="text"
+								class="form-control ass-title"
+                                id="ass-title-{{@../index}}-{{@index}}"
+								placeholder="Do this thing."
+                				value="{{title}}"
+            				>
+						</div>
+                    	<div class="form-group">
+                			<label for="ass-type-{{@../index}}-{{@index}}">Assessment Type: </label>
+							<select class="ass-type rerender" data-mod="{{@../index}}" data-ass="{{@index}}" id="ass-type-{{@../index}}-{{@index}}">
+                        		<option {{#ifeq type "comment-link"}}selected{{/ifeq}} >comment-link</option>
+                        		<option {{#ifeq type "google-quiz"}}selected{{/ifeq}} >google-quiz</option>
+                        		<option {{#ifeq type "inperson-induction"}}selected{{/ifeq}} >inperson-induction</option>
+                        		<option {{#ifeq type "perm-timeout"}}selected{{/ifeq}} >perm-timeout</option>
+                        	</select>
+                    	</div>
+                    	<div class="form-group">
+                    		<label for="ass-required-{{@../index}}-{{@index}}">
+                    			Required:
+                        		<input type="checkbox" class="ass-required" id="ass-required-{{@../index}}-{{@index}}" {{#if required}}checked{{/if}} >
+                    		</label>
+                        </div>
+						{{#ifeq type "perm-timeout"}}
+                    	<div class="form-group">
+							<label for="ass-perm-{{@../index}}-{{@index}}">Perm Required (only one)</label>
+							<input
+								type="text"
+								class="form-control ass-perm"
+                                id="ass-perm-{{@../index}}-{{@index}}"
+								placeholder="training.completed.machine"
+                				value="{{perm}}"
+            				>
+						</div>
+                    	<div class="form-group">
+							<label for="ass-time-{{@../index}}-{{@index}}">Hours to wait after perm was given (0 for instant)</label>
+							<input
+								type="number"
+                                min="0"
+								class="form-control ass-time"
+                                id="ass-time-{{@../index}}-{{@index}}"
+								placeholder="48"
+                				value="{{time}}"
+            				>
+						</div>
+						{{/ifeq}}
+                    	{{#ifeq type "inperson-induction"}}
+                    	<div class="form-group">
+							<label for="ass-perm-{{@../index}}-{{@index}}">Perm Added On Completion (only one)</label>
+							<input
+								type="text"
+								class="form-control ass-perm"
+                                id="ass-perm-{{@../index}}-{{@index}}"
+								placeholder="training.completed.machine"
+                				value="{{perm}}"
+            				>
+						</div>
+                    	<div class="form-group">
+							<label for="ass-trainingPerm-{{@../index}}-{{@index}}">Perm Required To Induct (only one)</label>
+							<input
+								type="text"
+								class="form-control ass-trainingPerm"
+                                id="ass-trainingPerm-{{@../index}}-{{@index}}"
+								placeholder="training.completed.machine"
+                				value="{{trainingPerm}}"
+            				>
+						</div>
+                    	{{else}}{{#ifeq type "perm-timeout"}}{{else}}
+                    	<div class="form-group">
+							<label for="ass-link-{{@../index}}-{{@index}}">Link (opened when clicked on)</label>
+							<input
+								type="url"
+								class="form-control ass-link"
+                                id="ass-link-{{@../index}}-{{@index}}"
+								placeholder="https://wiki.uwamakers.com"
+                				value="{{link}}"
+            				>
+						</div>
+                    	{{/ifeq}}{{/ifeq}}
+                    	{{#ifeq type "google-quiz"}}
+                    	<div class="form-group">
+							<label for="ass-results-{{@../index}}-{{@index}}">Results Published CSV Link <a target="_blank" href="#">(What are you on about?)</a></label>
+							<input
+								type="url"
+								class="form-control ass-results"
+                                id="ass-results-{{@../index}}-{{@index}}"
+								placeholder="https://docs.google.com/spreadsheets/....csv"
+                				value="{{results}}"
+            				>
+						</div>
+                    	<div class="form-group">
+							<label for="ass-reqmark-{{@../index}}-{{@index}}">Pass Mark (0.01-1, 0.9=90%)</label>
+							<input
+								type="number"
+                                min="0"
+                                max="1"
+                                step="0.05"
+								class="form-control ass-reqmark"
+                                id="ass-reqmark-{{@../index}}-{{@index}}"
+								placeholder="0.9"
+                				value="{{reqmark}}"
+            				>
+						</div>
+                    	{{/ifeq}}
+                	</div>
+        		</li>
+        	{{/each}}
+    	</ul>
+	</div>
+	{{#if accessmail}}
+	<div class="panel-body">
+    Email Notifications:
+	</div>
+	<div class="">
+    	<ul class="list-group" style="margin-bottom: 0;">
+        	{{#each accessmail}}
+				<li class="list-group-item mail-item">
+                	<input id="accord-tc-mail-{{@../index}}-{{@index}}" name="accord-tc-mail-{{@../index}}" type="radio" class="accord-tc-input">
+                	<label for="accord-tc-mail-{{@../index}}-{{@index}}" class="accord-tc-label">{{email.subject}}</label>
+                	<div class="ass-actions">
+                       	<i class="fa fa-trash mail-delete" data-mod="{{@../index}}" data-mail="{{@index}}" data-toggle="tooltip" title="Delete Email"></i>
+                    </div>
+                	<div class="accord-tc-body">
+                    	<div class="form-group">
+							<label for="mail-subject-{{@../index}}-{{@index}}">Email Title (subject line)</label>
+							<input
+								type="text"
+								class="form-control mail-subject"
+                                id="mail-subject-{{@../index}}-{{@index}}"
+								placeholder="Do this thing."
+                				value="{{email.subject}}"
+            				>
+						</div>
+                    	<div class="form-group">
+                			<label for="mail-type-{{@../index}}-{{@index}}">Email Type: </label>
+							<select class="mail-type" data-mod="{{@../index}}" data-mail="{{@index}}" id="mail-type-{{@../index}}-{{@index}}">
+                        		<option {{#ifeq type "individual"}}selected{{/ifeq}} >individual</option>
+                        		<option {{#ifeq type "group"}}selected{{/ifeq}} >group</option>
+                        	</select>
+                    	</div>
+                    	<div class="form-group">
+                			<label for="mail-sendon-{{@../index}}-{{@index}}">Send Email: </label>
+							<select class="mail-sendon rerender" data-mod="{{@../index}}" data-mail="{{@index}}" id="mail-sendon-{{@../index}}-{{@index}}">
+                        		<option {{#ifeq sendon "instant"}}selected{{/ifeq}} >instant</option>
+                        		<option {{#ifeq sendon "weekly"}}selected{{/ifeq}} >weekly</option>
+                        	</select>
+                    	</div>
+                    	<div class="form-group show-weekly" {{#ifeq sendon "weekly"}}{{else}}style="display:none"{{/ifeq}}>
+                			<label for="mail-days-{{@../index}}-{{@index}}">Send On Days: </label>
+							<br>
+							<label class="btn btn-default"><input type="checkbox" name="mail-days-{{@../index}}-{{@index}}" {{#contains days 0}}checked{{/contains}} value="0"> Sunday</label>
+							<label class="btn btn-default"><input type="checkbox" name="mail-days-{{@../index}}-{{@index}}" {{#contains days 1}}checked{{/contains}} value="1"> Monday</label>
+							<label class="btn btn-default"><input type="checkbox" name="mail-days-{{@../index}}-{{@index}}" {{#contains days 2}}checked{{/contains}} value="2"> Tuesday</label>
+							<label class="btn btn-default"><input type="checkbox" name="mail-days-{{@../index}}-{{@index}}" {{#contains days 3}}checked{{/contains}} value="3"> Wednesday</label>
+							<label class="btn btn-default"><input type="checkbox" name="mail-days-{{@../index}}-{{@index}}" {{#contains days 4}}checked{{/contains}} value="4"> Thursday</label>
+							<label class="btn btn-default"><input type="checkbox" name="mail-days-{{@../index}}-{{@index}}" {{#contains days 5}}checked{{/contains}} value="5"> Friday</label>
+							<label class="btn btn-default"><input type="checkbox" name="mail-days-{{@../index}}-{{@index}}" {{#contains days 6}}checked{{/contains}} value="6"> Saturday</label>
+                    	</div>
+                    	<div class="form-group show-weekly" {{#ifeq sendon "weekly"}}{{else}}style="display:none"{{/ifeq}}>
+							<label for="mail-hour-{{@../index}}-{{@index}}">Send on hour: (0-23)</label>
+							<input
+								type="number"
+                                min="0"
+                                max="23"
+                                step="1"
+								class="mail-hour"
+                                id="mail-hour-{{@../index}}-{{@index}}"
+								placeholder="8"
+                				value="{{hour}}"
+            				>
+						</div>
+                    	<div class="form-group">
+							<label for="mail-from-{{@../index}}-{{@index}}">Email Address To Send From (sending email address)</label>
+							<input
+								type="text"
+								class="form-control mail-from"
+                                id="mail-from-{{@../index}}-{{@index}}"
+								placeholder="\"MakerBot\"robot@makeuwa.com"
+								readonly
+                				value='{{#if email.from}}{{email.from}}{{else}}"MakerBot"robot@makeuwa.com{{/if}}'
+            				>
+						</div>
+                    	<div class="form-group">
+							<label for="mail-to-{{@../index}}-{{@index}}">Email Address To Send To (use <code>\{{user.prefmail}}</code> to address the individual)</label>
+							<input
+								type="text"
+								class="form-control mail-to"
+                                id="mail-to-{{@../index}}-{{@index}}"
+								placeholder="jo@example.com"
+                				value="{{email.to}}"
+            				>
+						</div>
+                    	<div class="form-group">
+							<label for="mail-cc-{{@../index}}-{{@index}}">Email Addresses To CC (comma separated)</label>
+							<input
+								type="text"
+								class="form-control mail-cc"
+                                id="mail-cc-{{@../index}}-{{@index}}"
+								placeholder="john@example.com, jane@example.com"
+                				value="{{#each email.cc}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}"
+            				>
+						</div>
+                    	<div class="form-group">
+							<label for="mail-bcc-{{@../index}}-{{@index}}">Email Addresses To BCC (comma separated)</label>
+							<input
+								type="text"
+								class="form-control mail-bcc"
+                                id="mail-bcc-{{@../index}}-{{@index}}"
+								placeholder="jill@example.com, jack@example.com"
+                				value="{{#each email.bcc}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}"
+            				>
+						</div>
+                    	<div class="form-group">
+							<label for="mail-bcc-{{@../index}}-{{@index}}">Message: <br><small>
+							Uses HTML and <a target="_blank" href="https://handlebarsjs.com/">Handlebars</a>.
+							<br>For individual types, there is an <code>user</code> object available to Handlebars that contains the following fields: 
+							<br><code>fullname</code>, <code>firstname</code>, <code>surname</code>, <code>prefmail</code> (email), and <code>username</code> (pheme number).
+							<br>For group types, there is an <code>users</code> array available, which contains user objects previously specified.
+							</small></label>
+							<textarea
+								style="width: 100%;"
+								rows="7"
+								class="form-control mail-html"
+                                id="mail-html-{{@../index}}-{{@index}}"
+								placeholder="Hello, ..."
+            				>{{{email.html}}}</textarea>
+						</div>
+                	</div>
+                </li>
+        	{{/each}}
+    	</ul>
+	</div>
+	{{/if}}
+{{else}}
+	<div class="panel-heading mod-divider">
+		<h3 class="panel-title">Divider</h3>
+    	
+        <div class="mod-actions">
+            <i class="fa fa-trash mod-delete" data-mod="{{@index}}" data-toggle="tooltip" title="Delete Divider"></i>
+            {{#unless @first}}<i class="fa fa-arrow-up mod-up" data-mod="{{@index}}" data-toggle="tooltip" title="Move Up"></i>{{/unless}}
+            {{#unless @last}}<i class="fa fa-arrow-down mod-down" data-mod="{{@index}}" data-toggle="tooltip" title="Move Down"></i>{{/unless}}
+        </div>
+	</div>
+	{{/unless}}
+</div>
+{{/each}}
+
+<div class="action-wrap"><div class="btn-group" role="group">
+  <button type="button" class="btn add-module btn-default">+ Add Module</button>
+  <button type="button" class="btn add-divider btn-default">+ Add Divider</button>
+  <button type="button" class="btn tc-validate btn-default">Validate</button>
+  <button type="button" class="btn tc-save btn-success">Save</button>
+  <button type="button" class="btn tc-cancel btn-primary">Cancel</button>
+</div></div>
+
+<style>
+.ass-item, .mail-item {
+	position: relative;
+	padding-top: 3em;
+    padding-bottom: 0;
+}
+.accord-tc-input {
+	opacity: 0;
+	position: absolute;
+}
+.accord-tc-body {
+	display: none
+}
+.accord-tc-label {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    min-height: 3em;
+    background: lightgray;
+    padding: 0.75em 1.2em;
+    color: black;
+}
+.accord-tc-input:checked ~ .accord-tc-body {
+	display: block;
+}
+.accord-tc-input ~ .accord-tc-label::after {
+    position: absolute;
+    right: 0;
+    top: 0;
+    display: block;
+    width: 3em;
+    height: 2.3em;
+    line-height: 2.3;
+    text-align: center;
+    -webkit-transition: all .35s;
+    -o-transition: all .35s;
+    transition: all .35s;
+    content: "\25BC";
+    font-size: 1.2em;
+}
+.accord-tc-input:checked ~ .accord-tc-label::after {
+    transform: rotateX(180deg);
+}
+.mod-item > .panel-heading {
+	position: relative;
+}
+.mod-actions, .ass-actions {
+    position: absolute;
+    top: 0.75em;
+    right: 3em;
+	color: black;
+	cursor: default;
+}
+.mod-actions > i:hover, .ass-actions > i:hover {
+	cursor: pointer;
+	color: grey;
+}
+.action-wrap {
+	text-align: center;
+	margin-bottom: 10em;
+}
+.btn input[type=checkbox] {
+	vertical-align: top;
+}
+</style>
+
