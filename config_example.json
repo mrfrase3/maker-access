@@ -1,6 +1,6 @@
 {
 	"sessionSecret" : "somethingverylongandsecret",
-	"googleQuizResults": "docs.google.com",
+	"phemeAPIToken": "get me at auth.uwamakers.com",
 	"http"			: {
     					"enabled"	: true,
     					"port"		: 3011

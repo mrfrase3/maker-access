@@ -245,7 +245,7 @@ var handlePostAuth = function(body, cb){
         }
     });
 };
-var apiToken = 'e3a8adc963d55ed29c62925634c5a4c5f4bdb59ef8fb2f54e3bcf42419d65ed0';
+var apiToken = config.phemeAPIToken;
 
 var loginAuth = function(user, pass, cb){
 	if(!user || !pass || !user.trim() || !pass.trim() ) return cb(false);
