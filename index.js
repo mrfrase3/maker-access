@@ -135,6 +135,29 @@ app.get('/api/perms', (req, res) => {
 	});
 });
 
+app.get('/api/users', (req, res) => {
+	let token = req.get('authorization');
+    if(token){ 
+        let [user, pass] = new Buffer(token.split(" ").pop(), "base64").toString("ascii").split(":");
+        token = pass || user;
+    } else if(req.query.token && typeof req.query.token === 'string') token = req.query.token;
+	else return res.status(401).send('Authentication Token Required.');
+	if (typeof req.query.perm !== 'string' || !/^[\w-.]+$/.test(req.query.perm)) {
+		return res.status(400).send('Permission is Required.');
+	}
+	request.post('https://auth.uwamakers.com/api/ping', {json: true, body:{ "token": token }}, (err, re, body) => {
+			if(err || !re || re.statusCode !== 200){
+            	if(err) console.error(err);
+				return cb({msg: body ? body.message : "Error: Could not reach authentication server."});
+			}
+			permsdb.find({perm: req.query.perm, enabled: true}).toArray((err, perms) => {
+				if(err) return res.status(500).send('Unable to find perms.');
+				res.send(perms.map(p => p.username).join(','));
+			});
+		}
+    );
+});
+
 /*
 app.get("/api/user", function(req,res){
 	if(req.query.uid && typeof req.query.uid === 'string'){

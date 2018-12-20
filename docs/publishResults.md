@@ -7,6 +7,7 @@ This is a brief guide on how to setup the quiz and publish it's results.
 ## 1 - Quiz Requirements
 
 In order to be processed, the quiz must:
+
 - Contain exactly one question with the word "pheme" in the title, this should collect the user's pheme number. An example of how to format this is below.
   ![pheme format](https://i.imgur.com/xI58kfg.png)
 - Be enabled as a quiz, and have questions with assigned marks.
@@ -15,10 +16,11 @@ In order to be processed, the quiz must:
 ## 2 - Push Quiz Results to a Google Sheet
 
 Go to:
-  - "Responses"
-  - Click on the three dots in the top right
-  - Click "Select response destination"
-  - Create a new sheet and save
+
+- "Responses"
+- Click on the three dots in the top right
+- Click "Select response destination"
+- Create a new sheet and save
 
 You can open the new google sheet by pressing the green button
 
@@ -27,6 +29,7 @@ You can open the new google sheet by pressing the green button
 ## 3 - Publish results as CSV
 
 In the now-created sheet
+
 - Click "File" in the top left
 - Select "Publish to the web..."
 - Change "Entire Document" to "Form Responses 1"
